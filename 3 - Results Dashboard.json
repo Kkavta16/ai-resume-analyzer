@@ -1,0 +1,389 @@
+{
+  "name": "3 - Results Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "results",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        1296
+      ],
+      "id": "fd25ad44-004f-4dbd-a5a7-93965cca3463",
+      "name": "Dashboard URL",
+      "webhookId": "d4000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        1296
+      ],
+      "id": "57094815-19df-4288-b010-31e04fac8714",
+      "name": "Get Applications",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Render all analysed applications as an HTML dashboard (best match first)\nconst q = $('Dashboard URL').first().json.query || {};\nconst esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\n\nlet rows = $('Get Applications').all().map(i => i.json).filter(r => r.application_id);\n// latest email per application (email_log may be empty or missing)\nconst lastMail = {};\nfor (const m of $('Get Email Log').all().map(i => i.json).filter(m => m.application_id)) {\n  if (!lastMail[m.application_id] || String(m.sent_at) > String(lastMail[m.application_id].sent_at)) lastMail[m.application_id] = m;\n}\nconst mailBadge = id => {\n  const m = lastMail[id];\n  if (!m) return '';\n  const c = m.status !== 'Sent' ? '#dc2626' : m.email_type === 'Rejection' ? '#6b7280' : '#16a34a';\n  return '<div class=\"mail\" style=\"color:' + c + '\">' + (m.status === 'Sent' ? '\\u2709 ' + esc(m.email_type) + ' sent' : '\\u26a0 ' + esc(m.email_type) + ' failed') + '<br><small>' + esc(String(m.sent_at || '').slice(0, 16).replace('T', ' ')) + '</small></div>';\n};\nif (q.job_id) rows = rows.filter(r => r.job_id === q.job_id);\nrows.sort((a, b) => (Number(b.match_score) || 0) - (Number(a.match_score) || 0));\n\nconst pill = rec => {\n  const c = { Shortlist: '#16a34a', Maybe: '#d97706', Reject: '#dc2626' }[rec] || '#6b7280';\n  return '<span class=\"pill\" style=\"background:' + c + '\">' + esc(rec || '-') + '</span>';\n};\nconst bar = s => {\n  const n = Math.max(0, Math.min(100, Number(s) || 0));\n  const c = n >= 75 ? '#16a34a' : n >= 50 ? '#d97706' : '#dc2626';\n  return '<div class=\"score\"><b>' + n + '</b><div class=\"track\"><div style=\"width:' + n + '%;background:' + c + '\"></div></div></div>';\n};\nconst count = rec => rows.filter(r => r.recommendation === rec).length;\n\nconst body = rows.length ? rows.map(r =>\n  '<tr>' +\n  '<td><b>' + esc(r.candidate_name) + '</b><br><small>' + esc(r.email) + (r.phone ? ' · ' + esc(r.phone) : '') + '</small>' +\n    (r.college ? '<br><small>' + esc(r.college) + '</small>' : '') + '</td>' +\n  '<td>' + esc(r.job_title) + '<br><small>' + esc(r.job_id) + '</small></td>' +\n  '<td>' + bar(r.match_score) + '</td>' +\n  '<td>' + pill(r.recommendation) + '</td>' +\n  '<td><small><b>Has:</b> ' + esc(r.matched_skills || '-') + '<br><b>Missing:</b> ' + esc(r.missing_skills || '-') + '</small></td>' +\n  '<td><small>' + esc(r.ai_summary) + '</small></td>' +\n  '<td><small>' + esc((r.submitted_at || '').slice(0, 16).replace('T', ' ')) + '<br>' + esc(r.resume_file) + '</small></td>' +\n  '<td class=\"act\"><a class=\"btn\" target=\"_blank\" href=\"/webhook/resume?id=' + encodeURIComponent(r.application_id) + '\">View</a>' +\n    '<a class=\"btn ghost\" href=\"/webhook/resume?id=' + encodeURIComponent(r.application_id) + '&dl=1\">Download</a>' +\n    '<div class=\"decide\"><form class=\"inl\" method=\"POST\" action=\"/webhook/send-mail\">' +\n      '<input type=\"hidden\" name=\"id\" value=\"' + esc(r.application_id) + '\"><input type=\"hidden\" name=\"type\" value=\"rejection\">' +\n      '<button class=\"btn rej\" type=\"submit\">Reject</button></form>' +\n    '<a class=\"btn sel\" target=\"_blank\" href=\"/webhook/compose-mail?id=' + encodeURIComponent(r.application_id) + '\">Select</a></div>' + mailBadge(r.application_id) + '</td>' +\n  '</tr>'\n).join('') : '<tr><td colspan=\"8\" class=\"empty\">No applications yet. Submit one through the apply form.</td></tr>';\n\nconst page = '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' +\n'<title>Resume Analyzer Results</title><style>' +\n'body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}' +\n'header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}' +\n'.stats{display:flex;gap:12px;padding:16px 24px;flex-wrap:wrap}.stat{background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 1px 2px #0001;min-width:110px}' +\n'.stat b{display:block;font-size:22px}.wrap{padding:0 24px 24px;overflow-x:auto}' +\n'table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 2px #0001}' +\n'th,td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid #eee;font-size:14px}th{background:#f3f4f6;font-size:12px;text-transform:uppercase;color:#555}' +\n'small{color:#555}.pill{color:#fff;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}' +\n'.score{min-width:110px}.track{height:6px;background:#eee;border-radius:3px;margin-top:4px}.track div{height:6px;border-radius:3px}.empty{text-align:center;padding:40px;color:#777}' +\n'.act{white-space:nowrap}.btn{display:inline-block;padding:5px 10px;margin:0 4px 4px 0;border-radius:6px;background:#111827;color:#fff;text-decoration:none;font-size:12px;font-weight:600}' +\n'.inl{display:inline;margin:0}button.btn{border:0;cursor:pointer;font-family:inherit;line-height:normal}.btn.rej{background:#dc2626}.btn.sel{background:#16a34a}.decide{margin-top:2px}' +\n'.btn.mailbtn{background:#2563eb}.mail{font-size:12px;font-weight:600;margin-top:2px}' +\n'.btn.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}' +\n'</style></head><body><header><h1>Resume Analyzer — Results' + (q.job_id ? ' · ' + esc(q.job_id) : '') + '</h1></header>' +\n'<div class=\"stats\"><div class=\"stat\"><b>' + rows.length + '</b>Applications</div>' +\n'<div class=\"stat\"><b style=\"color:#16a34a\">' + count('Shortlist') + '</b>Shortlist</div>' +\n'<div class=\"stat\"><b style=\"color:#d97706\">' + count('Maybe') + '</b>Maybe</div>' +\n'<div class=\"stat\"><b style=\"color:#dc2626\">' + count('Reject') + '</b>Reject</div></div>' +\n'<div class=\"wrap\"><table><thead><tr><th>Candidate</th><th>Job</th><th>Score</th><th>Verdict</th><th>Skills</th><th>AI summary</th><th>Submitted</th><th>Resume / Decision</th></tr></thead>' +\n'<tbody>' + body + '</tbody></table></div></body></html>';\n\nreturn [{ json: { html: page } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1776,
+        1296
+      ],
+      "id": "5be70385-c32e-48e9-9b30-ddcffb58afb8",
+      "name": "Build HTML"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        1296
+      ],
+      "id": "6125359a-f361-4d27-9975-b874c7640f96",
+      "name": "Show Page"
+    },
+    {
+      "parameters": {
+        "path": "resume",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        1536
+      ],
+      "id": "e5000000-0000-4000-8000-000000000011",
+      "name": "Resume URL",
+      "webhookId": "e5000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only accept real application IDs (blocks path tricks like ../)\nconst id = String($json.query?.id || '').trim();\nconst valid = /^APP-[A-Z0-9]+$/.test(id);\nreturn [{ json: { id, valid, pattern: valid ? '/home/node/.n8n-files/resumes/' + id + '.*' : '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        1536
+      ],
+      "id": "e5000000-0000-4000-8000-000000000012",
+      "name": "Check ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "v1",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1776,
+        1536
+      ],
+      "id": "e5000000-0000-4000-8000-000000000013",
+      "name": "Valid ID?"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.pattern }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        1440
+      ],
+      "id": "e5000000-0000-4000-8000-000000000014",
+      "name": "Read Resume File",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f1",
+              "leftValue": "={{ Object.keys($input.item.binary || {}).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        1440
+      ],
+      "id": "e5000000-0000-4000-8000-000000000015",
+      "name": "File Found?"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Disposition",
+                "value": "={{ $('Resume URL').item.json.query.dl ? 'attachment' : 'inline' }}; filename=\"{{ $('Check ID').item.json.id }}.{{ $binary.data ? $binary.data.fileExtension : 'pdf' }}\""
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2448,
+        1344
+      ],
+      "id": "e5000000-0000-4000-8000-000000000016",
+      "name": "Send Resume"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<!doctype html><html><head><meta charset=\"utf-8\"><title>Resume not available</title><style>body{font-family:system-ui,Segoe UI,sans-serif;background:#f6f7f9;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}div{background:#fff;padding:32px 40px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center;max-width:420px}a{color:#111827}</style></head><body><div><h2>Resume not available</h2><p>No resume file is stored for this application. Applications submitted before resume saving was enabled don't have one.</p><p><a href=\"/webhook/results\">Back to results</a></p></div></body></html>",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2448,
+        1600
+      ],
+      "id": "e5000000-0000-4000-8000-000000000017",
+      "name": "Resume Not Found"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "email_log",
+          "mode": "name"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        1136
+      ],
+      "id": "f6000000-0000-4000-8000-000000000040",
+      "name": "Get Email Log",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Dashboard URL": {
+      "main": [
+        [
+          {
+            "node": "Get Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Applications": {
+      "main": [
+        [
+          {
+            "node": "Get Email Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build HTML": {
+      "main": [
+        [
+          {
+            "node": "Show Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume URL": {
+      "main": [
+        [
+          {
+            "node": "Check ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check ID": {
+      "main": [
+        [
+          {
+            "node": "Valid ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid ID?": {
+      "main": [
+        [
+          {
+            "node": "Read Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resume Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Resume File": {
+      "main": [
+        [
+          {
+            "node": "File Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Found?": {
+      "main": [
+        [
+          {
+            "node": "Send Resume",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resume Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email Log": {
+      "main": [
+        [
+          {
+            "node": "Build HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}

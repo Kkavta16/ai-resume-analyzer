@@ -1,0 +1,927 @@
+{
+  "name": "2 - Candidate Application & Resume Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Apply for a Job",
+        "formDescription": "Enter the Job ID from the LinkedIn post (it is filled in automatically if you used the apply link).",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Job ID",
+              "placeholder": "JOB-XXXXXXX",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "buttonLabel": "Continue",
+          "path": "apply-job"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        592
+      ],
+      "id": "f49d70d8-2d1c-4ff6-b1f1-56e01c9380e5",
+      "name": "Application Form",
+      "webhookId": "c3b1964f-5b59-4ac6-9a4e-040cb8101c65"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jobs",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json['Job ID'].trim().toUpperCase() }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        592
+      ],
+      "id": "5774a58a-d2d8-4ac5-a028-91e9d53e07b2",
+      "name": "Find Job",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.job_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Open",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        592
+      ],
+      "id": "fb430c13-d2a1-4c85-88d3-1e0129fac7f0",
+      "name": "Job Open?"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Job not found",
+        "completionMessage": "This Job ID doesn't exist or the job is closed. Please check the link in the LinkedIn post.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        768
+      ],
+      "id": "e6c5159c-b037-4255-8c9b-f29fd253361e",
+      "name": "Job Not Found",
+      "webhookId": "b2000000-0000-4000-8000-0000000000bb"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the candidate form from the fields HR selected for this job\nconst job = $input.first().json;\n\nconst catalog = {\n  'Phone':                { fieldType: 'text', placeholder: '+91 98xxxxxxx' },\n  'College / University': { fieldType: 'text' },\n  'Degree':               { fieldType: 'text', placeholder: 'e.g. B.Tech CSE' },\n  'Graduation Year':      { fieldType: 'number' },\n  'Years of Experience':  { fieldType: 'number' },\n  'Current Company':      { fieldType: 'text' },\n  'LinkedIn Profile':     { fieldType: 'text', placeholder: 'https://linkedin.com/in/...' },\n  'GitHub / Portfolio':   { fieldType: 'text', placeholder: 'https://github.com/...' },\n  'Expected Salary':      { fieldType: 'text' },\n  'Notice Period':        { fieldType: 'text' },\n  'Cover Letter':         { fieldType: 'textarea' },\n};\n\nconst fields = [\n  { fieldLabel: 'Full Name', fieldType: 'text', requiredField: true },\n  { fieldLabel: 'Email', fieldType: 'email', requiredField: true },\n];\n\nconst selected = String(job.candidate_fields || '').split(',').map(s => s.trim()).filter(Boolean);\nfor (const label of selected) {\n  if (catalog[label]) fields.push({ fieldLabel: label, requiredField: true, ...catalog[label] });\n}\n\nconst customQuestions = String(job.custom_questions || '').split('\\n').map(s => s.trim()).filter(Boolean);\nfor (const q of customQuestions) {\n  fields.push({ fieldLabel: q, fieldType: 'textarea', requiredField: true });\n}\n\nfields.push({\n  fieldLabel: 'Resume',\n  fieldType: 'file',\n  requiredField: true,\n  multipleFiles: false,\n  acceptFileTypes: '.pdf,.txt'\n});\n\nreturn [{ json: { formFields: fields, customQuestions, job } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        496
+      ],
+      "id": "84d69980-0b1a-4bea-b7d2-d13321cfabdb",
+      "name": "Build Candidate Form"
+    },
+    {
+      "parameters": {
+        "defineForm": "json",
+        "jsonOutput": "={{ JSON.stringify($json.formFields) }}",
+        "options": {
+          "formTitle": "={{ $json.job.job_title }} @ {{ $json.job.company }}",
+          "formDescription": "={{ $json.job.location }} · {{ $json.job.work_mode }} · {{ $json.job.employment_type }}\nExperience: {{ $json.job.experience_required }}",
+          "buttonLabel": "Submit Application"
+        }
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        496
+      ],
+      "id": "a14db249-36d9-4e5a-af33-c51feef164f4",
+      "name": "Candidate Details + Resume",
+      "webhookId": "b2000000-0000-4000-8000-0000000000cc"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise the uploaded resume to binary key 'resume' and detect its type\nconst item = $input.first();\nconst keys = Object.keys(item.binary || {});\nif (!keys.length) throw new Error('No resume file was uploaded');\n\nconst bin = item.binary[keys[0]];\nconst name = bin.fileName || 'resume';\nconst ext = (bin.fileExtension || name.split('.').pop() || '').toLowerCase();\n\nreturn [{\n  json: { answers: item.json, fileName: name, ext },\n  binary: { resume: bin }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        496
+      ],
+      "id": "29082de8-efd6-464e-a2ea-a099f034b8d2",
+      "name": "Prepare Resume"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ext }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e4a39fe1-3abb-4b05-bbb4-8b4e1368cd5d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ext }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5d5c6fae-dda4-4bdc-a1db-2b6e61f969df"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1728,
+        496
+      ],
+      "id": "c5540ee4-dc7a-4678-88cf-631d9fcb1d89",
+      "name": "File Type"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        384
+      ],
+      "id": "48d96ce4-b4c7-4d3c-8ba4-5ebe89ef6ca3",
+      "name": "Extract PDF"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "resume",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        592
+      ],
+      "id": "a01402a7-f8b8-4a73-838f-22fe4fa5240b",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "resume_text",
+              "value": "={{ ($json.text || '').replace(/\\s+\\n/g, '\\n').slice(0, 30000) }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "answers",
+              "value": "={{ $('Prepare Resume').item.json.answers }}",
+              "type": "object"
+            },
+            {
+              "id": "s3",
+              "name": "file_name",
+              "value": "={{ $('Prepare Resume').item.json.fileName }}",
+              "type": "string"
+            },
+            {
+              "id": "s4",
+              "name": "job",
+              "value": "={{ $('Build Candidate Form').item.json.job }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2160,
+        496
+      ],
+      "id": "8738a029-227b-4e70-920d-430180536755",
+      "name": "Standardize Input"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=## JOB\nTitle: {{ $json.job.job_title }}\nCompany: {{ $json.job.company }}\nExperience required: {{ $json.job.experience_required }}\nRequired skills: {{ $json.job.required_skills }}\nJob description:\n{{ $json.job.job_description }}\n\n## CANDIDATE FORM ANSWERS\n{{ JSON.stringify($json.answers, null, 2) }}\n\n## RESUME TEXT\n{{ $json.resume_text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an experienced technical recruiter. Evaluate how well the candidate's resume fits the job description.\n\nScoring rubric for match_score (0-100):\n- Required skills coverage: 40\n- Relevant experience (years + relevance of roles/projects): 30\n- Education / certifications fit: 15\n- Resume quality and evidence of impact (metrics, outcomes): 15\n\nrecommendation must be exactly one of: \"Shortlist\" (score >= 75), \"Maybe\" (50-74), \"Reject\" (< 50).\n\nRules:\n- Base every judgment only on the resume text and form answers. Never invent skills or experience.\n- If a value is not present, use an empty string, 0, or an empty list.\n- matched_skills / missing_skills compare against the job's required skills.\n- Keep summary to 2-3 sentences written for the hiring manager."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        496
+      ],
+      "id": "87751a96-2456-4c75-abde-5eebc9e73921",
+      "name": "Recruiter Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2320,
+        736
+      ],
+      "id": "32e827a1-0eba-414c-8f1f-6af49a0db1c3",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "shQG2mVcpUol4Syb",
+          "name": "n8n workflow account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"candidate_name\": { \"type\": \"string\" },\n    \"email\": { \"type\": \"string\" },\n    \"phone\": { \"type\": \"string\" },\n    \"education\": { \"type\": \"string\" },\n    \"total_experience_years\": { \"type\": \"number\" },\n    \"skills\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"matched_skills\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"missing_skills\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"strengths\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"weaknesses\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } },\n    \"match_score\": { \"type\": \"number\", \"minimum\": 0, \"maximum\": 100 },\n    \"recommendation\": { \"type\": \"string\", \"enum\": [\"Shortlist\", \"Maybe\", \"Reject\"] },\n    \"summary\": { \"type\": \"string\" }\n  },\n  \"required\": [\"candidate_name\", \"email\", \"phone\", \"education\", \"total_experience_years\", \"skills\", \"matched_skills\", \"missing_skills\", \"strengths\", \"weaknesses\", \"match_score\", \"recommendation\", \"summary\"],\n  \"additionalProperties\": false\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        2544,
+        736
+      ],
+      "id": "8b7bb3a8-b341-4fa4-ab0b-2307e5cf0e29",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flatten form answers + AI analysis into one data table row\nconst ai = $input.first().json.output || {};\nconst src = $('Standardize Input').first().json;\nconst a = src.answers || {};\nconst job = src.job || {};\nconst customQs = $('Build Candidate Form').first().json.customQuestions || [];\nconst list = v => Array.isArray(v) ? v.join(', ') : String(v || '');\nconst str = v => (v === undefined || v === null) ? '' : String(v);\n\nreturn [{ json: {\n  application_id: 'APP-' + Date.now().toString(36).toUpperCase(),\n  submitted_at: $now.toISO(),\n  job_id: str(job.job_id),\n  job_title: str(job.job_title),\n  candidate_name: str(a['Full Name'] || ai.candidate_name),\n  email: str(a['Email'] || ai.email),\n  phone: str(a['Phone'] || ai.phone),\n  college: str(a['College / University']),\n  degree: str(a['Degree']),\n  graduation_year: str(a['Graduation Year']),\n  years_of_experience: str(a['Years of Experience'] ?? ai.total_experience_years),\n  current_company: str(a['Current Company']),\n  linkedin_profile: str(a['LinkedIn Profile']),\n  github_portfolio: str(a['GitHub / Portfolio']),\n  expected_salary: str(a['Expected Salary']),\n  notice_period: str(a['Notice Period']),\n  custom_answers: customQs.map(q => `${q}: ${a[q] || ''}`).join('\\n'),\n  resume_file: str(src.file_name),\n  education_ai: str(ai.education),\n  skills: list(ai.skills),\n  matched_skills: list(ai.matched_skills),\n  missing_skills: list(ai.missing_skills),\n  strengths: list(ai.strengths),\n  weaknesses: list(ai.weaknesses),\n  match_score: Number(ai.match_score) || 0,\n  recommendation: str(ai.recommendation),\n  ai_summary: str(ai.summary)\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2736,
+        496
+      ],
+      "id": "9356f2e1-10a4-45f2-97f6-16c4500e5392",
+      "name": "Build Application Row"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "application_id",
+              "displayName": "application_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "submitted_at",
+              "displayName": "submitted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_title",
+              "displayName": "job_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "college",
+              "displayName": "college",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "degree",
+              "displayName": "degree",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "graduation_year",
+              "displayName": "graduation_year",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "years_of_experience",
+              "displayName": "years_of_experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "current_company",
+              "displayName": "current_company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "linkedin_profile",
+              "displayName": "linkedin_profile",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "github_portfolio",
+              "displayName": "github_portfolio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "expected_salary",
+              "displayName": "expected_salary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "notice_period",
+              "displayName": "notice_period",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "custom_answers",
+              "displayName": "custom_answers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "resume_file",
+              "displayName": "resume_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "education_ai",
+              "displayName": "education_ai",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "matched_skills",
+              "displayName": "matched_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "missing_skills",
+              "displayName": "missing_skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "strengths",
+              "displayName": "strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "weaknesses",
+              "displayName": "weaknesses",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ai_summary",
+              "displayName": "ai_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2960,
+        496
+      ],
+      "id": "77909c55-8793-4a34-98a3-a08b02f052a0",
+      "name": "Save Application"
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Application submitted!",
+        "completionMessage": "=Thanks {{ $('Build Application Row').item.json.candidate_name }}, your application for {{ $('Build Application Row').item.json.job_title }} was received.\n\n------ AI Resume Analysis (demo) ------\nMatch score: {{ $('Build Application Row').item.json.match_score }}/100\nRecommendation: {{ $('Build Application Row').item.json.recommendation }}\n\nMatched skills: {{ $('Build Application Row').item.json.matched_skills || '-' }}\nMissing skills: {{ $('Build Application Row').item.json.missing_skills || '-' }}\n\nStrengths: {{ $('Build Application Row').item.json.strengths || '-' }}\nWeaknesses: {{ $('Build Application Row').item.json.weaknesses || '-' }}\n\nSummary: {{ $('Build Application Row').item.json.ai_summary }}\n\nAll results: http://localhost:5679/webhook/results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        3184,
+        496
+      ],
+      "id": "f2f6a02e-3e5b-4bda-b13b-5bceba6a0886",
+      "name": "Thank You",
+      "webhookId": "b2000000-0000-4000-8000-0000000000dd"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pair the uploaded resume with its application ID so the dashboard can serve it later\nconst appId = $('Build Application Row').first().json.application_id;\nconst prep = $('Prepare Resume').first();\nconst ext = ['pdf', 'txt'].includes(prep.json.ext) ? prep.json.ext : 'pdf';\n\nreturn [{\n  json: { application_id: appId, file_path: '/home/node/.n8n-files/resumes/' + appId + '.' + ext },\n  binary: { resume: prep.binary.resume }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        704
+      ],
+      "id": "e5000000-0000-4000-8000-000000000001",
+      "name": "Prepare Resume File",
+      "onError": "continueRegularOutput",
+      "notes": "Side branch: a failure here never blocks the Thank You page"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ $json.file_path }}",
+        "dataPropertyName": "resume",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        3408,
+        704
+      ],
+      "id": "e5000000-0000-4000-8000-000000000002",
+      "name": "Save Resume File",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Application Form": {
+      "main": [
+        [
+          {
+            "node": "Find Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Job": {
+      "main": [
+        [
+          {
+            "node": "Job Open?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Open?": {
+      "main": [
+        [
+          {
+            "node": "Build Candidate Form",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Job Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Candidate Form": {
+      "main": [
+        [
+          {
+            "node": "Candidate Details + Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Details + Resume": {
+      "main": [
+        [
+          {
+            "node": "Prepare Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Resume": {
+      "main": [
+        [
+          {
+            "node": "File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF": {
+      "main": [
+        [
+          {
+            "node": "Standardize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Standardize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Standardize Input": {
+      "main": [
+        [
+          {
+            "node": "Recruiter Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Recruiter Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Recruiter Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recruiter Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Application Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Application Row": {
+      "main": [
+        [
+          {
+            "node": "Save Application",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Application": {
+      "main": [
+        [
+          {
+            "node": "Thank You",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Resume File": {
+      "main": [
+        [
+          {
+            "node": "Save Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}

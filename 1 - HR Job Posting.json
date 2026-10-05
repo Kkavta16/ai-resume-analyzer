@@ -1,0 +1,534 @@
+{
+  "name": "1 - HR Job Posting (Form -> Data Table -> LinkedIn post text)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Create a Job Opening",
+        "formDescription": "HR team: fill in the job details. A LinkedIn hiring post with the application link will be published automatically.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Title",
+              "placeholder": "e.g. Data Analyst Intern",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Location",
+              "placeholder": "e.g. Bengaluru, India",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Employment Type",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Full-time"
+                  },
+                  {
+                    "option": "Part-time"
+                  },
+                  {
+                    "option": "Internship"
+                  },
+                  {
+                    "option": "Contract"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Work Mode",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Onsite"
+                  },
+                  {
+                    "option": "Remote"
+                  },
+                  {
+                    "option": "Hybrid"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Experience Required",
+              "placeholder": "e.g. 0-2 years",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Required Skills",
+              "placeholder": "e.g. Python, SQL, Power BI",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Description",
+              "fieldType": "textarea",
+              "placeholder": "Responsibilities, requirements, perks...",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "JD File (optional)",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf"
+            },
+            {
+              "fieldLabel": "Candidate Fields",
+              "fieldType": "dropdown",
+              "multiselect": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Phone"
+                  },
+                  {
+                    "option": "College / University"
+                  },
+                  {
+                    "option": "Degree"
+                  },
+                  {
+                    "option": "Graduation Year"
+                  },
+                  {
+                    "option": "Years of Experience"
+                  },
+                  {
+                    "option": "Current Company"
+                  },
+                  {
+                    "option": "LinkedIn Profile"
+                  },
+                  {
+                    "option": "GitHub / Portfolio"
+                  },
+                  {
+                    "option": "Expected Salary"
+                  },
+                  {
+                    "option": "Notice Period"
+                  },
+                  {
+                    "option": "Cover Letter"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldLabel": "Custom Questions",
+              "fieldType": "textarea",
+              "placeholder": "One question per line, e.g.\nWhy do you want to join us?\nAre you open to relocation?"
+            },
+            {
+              "fieldLabel": "Application Deadline",
+              "fieldType": "date"
+            }
+          ]
+        },
+        "options": {
+          "path": "hr-post-job",
+          "buttonLabel": "Publish Job"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "HR Job Form",
+      "webhookId": "a1000000-0000-4000-8000-0000000000aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Config: change this to your n8n URL (or ngrok / cloud URL so LinkedIn users can reach it)\nconst N8N_BASE_URL = 'http://localhost:5679';\nconst APPLY_FORM_PATH = 'apply-job'; // must match the Form Trigger path in workflow 2\n\nconst item = $input.first();\nconst f = item.json;\n\nconst jobId = 'JOB-' + Date.now().toString(36).toUpperCase();\nconst candidateFields = Array.isArray(f['Candidate Fields'])\n  ? f['Candidate Fields']\n  : String(f['Candidate Fields'] || '').split(',').map(s => s.trim()).filter(Boolean);\n\n// The form stores an uploaded file under a binary key we don't control - normalise it to 'jd'\nconst binKeys = Object.keys(item.binary || {});\nconst binary = binKeys.length ? { jd: item.binary[binKeys[0]] } : undefined;\n\nreturn [{\n  json: {\n    jobId,\n    company: f['Company Name'],\n    title: f['Job Title'],\n    location: f['Location'],\n    employmentType: f['Employment Type'],\n    workMode: f['Work Mode'],\n    experience: f['Experience Required'],\n    skills: f['Required Skills'],\n    description: f['Job Description'],\n    candidateFields: candidateFields.join(', '),\n    customQuestions: (f['Custom Questions'] || '').trim(),\n    deadline: f['Application Deadline'] || '',\n    applyLink: `${N8N_BASE_URL.replace(/\\/$/, '')}/form/${APPLY_FORM_PATH}?Job%20ID=${jobId}`,\n    hasJdFile: binKeys.length > 0\n  },\n  binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Prepare Job"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.hasJdFile }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "JD File Uploaded?"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "jd",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Extract JD PDF"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f01",
+              "name": "job_id",
+              "value": "={{ $('Prepare Job').item.json.jobId }}",
+              "type": "string"
+            },
+            {
+              "id": "f02",
+              "name": "job_title",
+              "value": "={{ $('Prepare Job').item.json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "f03",
+              "name": "company",
+              "value": "={{ $('Prepare Job').item.json.company }}",
+              "type": "string"
+            },
+            {
+              "id": "f04",
+              "name": "location",
+              "value": "={{ $('Prepare Job').item.json.location }}",
+              "type": "string"
+            },
+            {
+              "id": "f05",
+              "name": "employment_type",
+              "value": "={{ $('Prepare Job').item.json.employmentType }}",
+              "type": "string"
+            },
+            {
+              "id": "f06",
+              "name": "work_mode",
+              "value": "={{ $('Prepare Job').item.json.workMode }}",
+              "type": "string"
+            },
+            {
+              "id": "f07",
+              "name": "experience_required",
+              "value": "={{ $('Prepare Job').item.json.experience }}",
+              "type": "string"
+            },
+            {
+              "id": "f08",
+              "name": "required_skills",
+              "value": "={{ $('Prepare Job').item.json.skills }}",
+              "type": "string"
+            },
+            {
+              "id": "f09",
+              "name": "job_description",
+              "value": "={{ $('Prepare Job').item.json.description }}{{ $json.text ? '\\n\\n--- Attached JD ---\\n' + $json.text.slice(0, 40000) : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "f10",
+              "name": "candidate_fields",
+              "value": "={{ $('Prepare Job').item.json.candidateFields }}",
+              "type": "string"
+            },
+            {
+              "id": "f11",
+              "name": "custom_questions",
+              "value": "={{ $('Prepare Job').item.json.customQuestions }}",
+              "type": "string"
+            },
+            {
+              "id": "f12",
+              "name": "deadline",
+              "value": "={{ $('Prepare Job').item.json.deadline }}",
+              "type": "string"
+            },
+            {
+              "id": "f13",
+              "name": "application_link",
+              "value": "={{ $('Prepare Job').item.json.applyLink }}",
+              "type": "string"
+            },
+            {
+              "id": "f14",
+              "name": "posted_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "f15",
+              "name": "status",
+              "value": "Open",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Job Record"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jobs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Save Job"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a LinkedIn hiring post for this job.\n\nCompany: {{ $('Job Record').item.json.company }}\nRole: {{ $('Job Record').item.json.job_title }}\nLocation: {{ $('Job Record').item.json.location }} ({{ $('Job Record').item.json.work_mode }})\nType: {{ $('Job Record').item.json.employment_type }}\nExperience: {{ $('Job Record').item.json.experience_required }}\nKey skills: {{ $('Job Record').item.json.required_skills }}\nDeadline: {{ $('Job Record').item.json.deadline || 'Open until filled' }}\nDescription:\n{{ $('Job Record').item.json.job_description.slice(0, 3000) }}\n\nApply link (must appear exactly once, on its own line near the end): {{ $('Job Record').item.json.application_link }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You write concise, professional LinkedIn hiring posts. Rules: max 1200 characters; a hook in the first line; 3-5 short bullet points (use the • character) for responsibilities/requirements; a clear call to action with the apply link; 3-5 relevant hashtags at the end. Plain text only, no markdown, no asterisks. Output only the post text."
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Write LinkedIn Post"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "postAs": "person",
+        "person": "SELECT_YOUR_PROFILE",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "Post on LinkedIn",
+      "disabled": true,
+      "notes": "Disabled: no LinkedIn credential. Enable + pick your profile to auto-post. Disabled nodes pass data through."
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Job published!",
+        "completionMessage": "=Job ID: {{ $('Job Record').item.json.job_id }}\n\nApplication link:\n{{ $('Job Record').item.json.application_link }}\n\n------ LinkedIn post (copy & paste) ------\n\n{{ $('Write LinkedIn Post').item.json.text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 1,
+      "position": [
+        1900,
+        0
+      ],
+      "id": "a1000000-0000-4000-8000-000000000010",
+      "name": "Show Confirmation",
+      "webhookId": "a1000000-0000-4000-8000-0000000000bb"
+    }
+  ],
+  "connections": {
+    "HR Job Form": {
+      "main": [
+        [
+          {
+            "node": "Prepare Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Job": {
+      "main": [
+        [
+          {
+            "node": "JD File Uploaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JD File Uploaded?": {
+      "main": [
+        [
+          {
+            "node": "Extract JD PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Job Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract JD PDF": {
+      "main": [
+        [
+          {
+            "node": "Job Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Job Record": {
+      "main": [
+        [
+          {
+            "node": "Save Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Job": {
+      "main": [
+        [
+          {
+            "node": "Write LinkedIn Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write LinkedIn Post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Post on LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post on LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Show Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

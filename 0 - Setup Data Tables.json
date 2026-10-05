@@ -1,0 +1,283 @@
+{
+  "name": "0 - Setup Data Tables (run once)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        1312
+      ],
+      "id": "bb4ef867-2136-4735-bf69-fa7e7939c805",
+      "name": "Run Once"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "jobs",
+        "columns": {
+          "column": [
+            {
+              "name": "job_id"
+            },
+            {
+              "name": "job_title"
+            },
+            {
+              "name": "company"
+            },
+            {
+              "name": "location"
+            },
+            {
+              "name": "employment_type"
+            },
+            {
+              "name": "work_mode"
+            },
+            {
+              "name": "experience_required"
+            },
+            {
+              "name": "required_skills"
+            },
+            {
+              "name": "job_description"
+            },
+            {
+              "name": "candidate_fields"
+            },
+            {
+              "name": "custom_questions"
+            },
+            {
+              "name": "deadline"
+            },
+            {
+              "name": "application_link"
+            },
+            {
+              "name": "posted_at"
+            },
+            {
+              "name": "status"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        1312
+      ],
+      "id": "16603a5d-c8da-4d91-a51e-3e260246fd76",
+      "name": "Create jobs table"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "applications",
+        "columns": {
+          "column": [
+            {
+              "name": "application_id"
+            },
+            {
+              "name": "submitted_at"
+            },
+            {
+              "name": "job_id"
+            },
+            {
+              "name": "job_title"
+            },
+            {
+              "name": "candidate_name"
+            },
+            {
+              "name": "email"
+            },
+            {
+              "name": "phone"
+            },
+            {
+              "name": "college"
+            },
+            {
+              "name": "degree"
+            },
+            {
+              "name": "graduation_year"
+            },
+            {
+              "name": "years_of_experience"
+            },
+            {
+              "name": "current_company"
+            },
+            {
+              "name": "linkedin_profile"
+            },
+            {
+              "name": "github_portfolio"
+            },
+            {
+              "name": "expected_salary"
+            },
+            {
+              "name": "notice_period"
+            },
+            {
+              "name": "custom_answers"
+            },
+            {
+              "name": "resume_file"
+            },
+            {
+              "name": "education_ai"
+            },
+            {
+              "name": "skills"
+            },
+            {
+              "name": "matched_skills"
+            },
+            {
+              "name": "missing_skills"
+            },
+            {
+              "name": "strengths"
+            },
+            {
+              "name": "weaknesses"
+            },
+            {
+              "name": "match_score",
+              "type": "number"
+            },
+            {
+              "name": "recommendation"
+            },
+            {
+              "name": "ai_summary"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        1312
+      ],
+      "id": "815eb9a7-ca7d-4f07-a267-a52823c87182",
+      "name": "Create applications table"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "email_log",
+        "columns": {
+          "column": [
+            {
+              "name": "application_id",
+              "type": "string"
+            },
+            {
+              "name": "email_type",
+              "type": "string"
+            },
+            {
+              "name": "to_email",
+              "type": "string"
+            },
+            {
+              "name": "subject",
+              "type": "string"
+            },
+            {
+              "name": "sent_at",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "error",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1964,
+        1312
+      ],
+      "id": "c3000000-0000-4000-8000-000000000004",
+      "name": "Create email_log table"
+    }
+  ],
+  "connections": {
+    "Run Once": {
+      "main": [
+        [
+          {
+            "node": "Create jobs table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create jobs table": {
+      "main": [
+        [
+          {
+            "node": "Create applications table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create applications table": {
+      "main": [
+        [
+          {
+            "node": "Create email_log table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}

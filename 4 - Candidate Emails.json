@@ -1,0 +1,1656 @@
+{
+  "name": "4 - Candidate Emails",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "compose-mail",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f6000000-0000-4000-8000-000000000001",
+      "name": "Select Page URL",
+      "webhookId": "f6000000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only accept real application IDs\nconst id = String($json.query?.id || '').trim();\nreturn [{ json: { id, valid: /^APP-[A-Z0-9]+$/.test(id) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "f7000000-0000-4000-8000-000000000002",
+      "name": "Check Select ID"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7000000-0000-4000-8000-000000000003-c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "f7000000-0000-4000-8000-000000000003",
+      "name": "Select ID Valid?"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "application_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Check Select ID').item.json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "f7000000-0000-4000-8000-000000000004",
+      "name": "Get Application",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7000000-0000-4000-8000-000000000005-c",
+              "leftValue": "={{ !!$json.application_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        -100
+      ],
+      "id": "f7000000-0000-4000-8000-000000000005",
+      "name": "Application Found?"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jobs",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Application').item.json.job_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        -200
+      ],
+      "id": "f7000000-0000-4000-8000-000000000006",
+      "name": "Get Job",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ '/home/node/.n8n-files/resumes/' + $('Check Select ID').item.json.id + '.*' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        -200
+      ],
+      "id": "f7000000-0000-4000-8000-000000000007",
+      "name": "Read Resume",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data ? $binary.data.fileExtension : \"\" }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data ? $binary.data.fileExtension : \"\" }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "txt"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "No file"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1540,
+        -200
+      ],
+      "id": "f7000000-0000-4000-8000-000000000008",
+      "name": "Resume Type"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -320
+      ],
+      "id": "f7000000-0000-4000-8000-000000000009",
+      "name": "Resume PDF Text",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -180
+      ],
+      "id": "f7000000-0000-4000-8000-000000000010",
+      "name": "Resume Plain Text",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// \"Select\" page: HR gives next-step details, the AI writes the email\nconst esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst app = $('Get Application').first().json;\nconst job = $('Get Job').first().json || {};\nconst resumeText = String($json.text || $json.data || '');\nconst found = resumeText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);\nconst toEmail = found ? found[0] : (app.email || '');\nconst source = found\n  ? '<div class=\"ok\">Email address taken from the candidate\\'s resume.</div>'\n  : '<div class=\"banner\">No email found in the resume' + (resumeText ? '' : ' (resume file not available)') + ', so the email from the application form is used. Please check it.</div>';\nconst company = job.company || 'our company';\nconst role = app.job_title || job.job_title || 'the role';\n\nconst html = '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Select candidate</title>' +\n  '<style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body>' +\n  '<header><h1>Select ' + esc(app.candidate_name) + '</h1><p>' + esc(role) + ' · ' + esc(company) + ' · ' + esc(app.application_id) +\n  (app.recommendation ? ' · AI verdict: ' + esc(app.recommendation) + ' (' + esc(app.match_score) + ')' : '') + '</p></header>' +\n  '<div class=\"wrap\">' + source +\n  '<form class=\"card\" method=\"POST\" action=\"/webhook/send-mail\">' +\n    '<h2>Next steps for the candidate</h2><p class=\"sub\">Fill in what applies. The AI agent writes the email from these details and sends it when you click <b>Accept</b>.</p>' +\n    '<input type=\"hidden\" name=\"id\" value=\"' + esc(app.application_id) + '\"><input type=\"hidden\" name=\"type\" value=\"select\">' +\n    '<label>To</label><input type=\"email\" name=\"to\" required value=\"' + esc(toEmail) + '\">' +\n    '<div class=\"row\"><div><label>Next step</label><select name=\"next_step\">' +\n      ['Assignment', 'Interview round', 'Assignment + interview', 'Other'].map(o => '<option>' + o + '</option>').join('') +\n    '</select></div><div><label>Deadline / date &amp; time</label><input type=\"text\" name=\"deadline\" placeholder=\"e.g. 10 Oct 2026, 6:00 PM IST\"></div></div>' +\n    '<label>Assignment / meeting link</label><input type=\"url\" name=\"link\" placeholder=\"https://...\">' +\n    '<label>Round details</label><textarea name=\"details\" placeholder=\"e.g. 45-min product case interview with the PM team on Google Meet. Submit the assignment as a PDF by replying to this email.\"></textarea>' +\n    '<label>Note for the AI (optional)</label><input type=\"text\" name=\"note\" placeholder=\"e.g. keep it short and friendly, mention we liked her HR-Buddy project\">' +\n    '<button class=\"green\" type=\"submit\" name=\"mode\" value=\"send\">Accept &amp; send</button>' +\n    '<button class=\"ghost\" type=\"submit\" name=\"mode\" value=\"preview\">Preview AI email first</button>' +\n    '<p class=\"note\">At least one of link, deadline or round details is required.</p>' +\n  '</form></div><p style=\"text-align:center\"><a href=\"/webhook/results\">Back to results</a></p></body></html>';\nreturn [{ json: { html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        -200
+      ],
+      "id": "f7000000-0000-4000-8000-000000000011",
+      "name": "Build Select Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        -200
+      ],
+      "id": "f7000000-0000-4000-8000-000000000012",
+      "name": "Show Select Page"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst page = (title, body, color, extraHead = '') => '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' + extraHead +\n  '<title>' + esc(title) + '</title><style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body><div class=\"msg\"><h2' + (color ? ' style=\"color:' + color + '\"' : '') + '>' + esc(title) + '</h2><p>' + body +\n  '</p><p><a href=\"/webhook/results\">Back to results</a></p></div></body></html>';\nreturn [{ json: { html: page('Application not found', 'This application ID does not exist.', '#dc2626') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "f7000000-0000-4000-8000-000000000013",
+      "name": "Select Not Found Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        120
+      ],
+      "id": "f7000000-0000-4000-8000-000000000014",
+      "name": "Show Select Not Found"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "send-mail",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        700
+      ],
+      "id": "f6000000-0000-4000-8000-000000000021",
+      "name": "Send Mail URL",
+      "webhookId": "f6000000-0000-4000-8000-0000000000a2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate what the dashboard / select page posted\nconst b = $json.body || {};\nconst s = k => String(b[k] ?? '').trim();\nconst req = {\n  id: s('id'), type: s('type'), to: s('to'), mode: s('mode') === 'preview' ? 'preview' : 'send',\n  subject: s('subject'), message: String(b.message ?? ''),\n  next_step: s('next_step'), deadline: s('deadline'), link: s('link'), details: s('details'), note: s('note'),\n};\nconst errors = [];\nif (!/^APP-[A-Z0-9]+$/.test(req.id)) errors.push('invalid application ID');\nif (!['rejection', 'select', 'move_forward'].includes(req.type)) errors.push('unknown mail type');\nif (req.to && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(req.to)) errors.push('invalid recipient email');\nif (req.type === 'move_forward' && (!req.subject || !req.message.trim())) errors.push('subject and message are required');\nif (req.type === 'select' && !req.link && !req.deadline && !req.details) errors.push('add at least a link, a deadline or round details');\nif (req.link && !/^https?:\\/\\/\\S+$/i.test(req.link)) errors.push('the link must start with http:// or https://');\nreturn [{ json: { ...req, valid: errors.length === 0, error: errors.join(', ') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        700
+      ],
+      "id": "f7000000-0000-4000-8000-000000000022",
+      "name": "Check Send Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7000000-0000-4000-8000-000000000023-c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        700
+      ],
+      "id": "f7000000-0000-4000-8000-000000000023",
+      "name": "Request Valid?"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "applications",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "application_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Check Send Request').item.json.id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000024",
+      "name": "Find Application",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f7000000-0000-4000-8000-000000000025-c",
+              "leftValue": "={{ !!$json.application_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000025",
+      "name": "Application Exists?"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jobs",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Find Application').item.json.job_id }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000026",
+      "name": "Find Job",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "email_log",
+          "mode": "name"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "application_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Check Send Request').item.json.id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000027",
+      "name": "Get Mail History",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ '/home/node/.n8n-files/resumes/' + $('Check Send Request').item.json.id + '.*' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000028",
+      "name": "Read Candidate Resume",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data ? $binary.data.fileExtension : \"\" }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.data ? $binary.data.fileExtension : \"\" }}",
+                    "rightValue": "txt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "txt"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "No file"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1760,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000029",
+      "name": "Candidate Resume Type"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        380
+      ],
+      "id": "f7000000-0000-4000-8000-000000000030",
+      "name": "Candidate PDF Text",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        520
+      ],
+      "id": "f7000000-0000-4000-8000-000000000031",
+      "name": "Candidate Plain Text",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recipient = address typed on the select page, else the email found in the resume, else the form email.\n// Also blocks sending the same rejection twice.\nconst req = $('Check Send Request').first().json;\nconst app = $('Find Application').first().json;\nconst job = $('Find Job').first().json || {};\nconst resumeText = String($json.text || $json.data || '');\nconst found = resumeText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);\nconst to = req.to || (found ? found[0] : '') || app.email || '';\nconst history = $('Get Mail History').all().map(i => i.json).filter(m => m.application_id);\nconst alreadyRejected = history.some(m => m.email_type === 'Rejection' && m.status === 'Sent');\n\nconst base = {\n  ...req, to,\n  application_id: app.application_id,\n  vars: { candidate_name: app.candidate_name || 'Candidate', company_name: job.company || 'our company', role_name: app.job_title || job.job_title || 'the role' },\n  ai_summary: app.ai_summary || '', strengths: app.strengths || '',\n};\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(to)) {\n  return [{ json: { ...base, route: 'problem', status: 422, problem_title: 'No email address found', problem_text: 'Neither the resume nor the application form has a valid email address for this candidate.' } }];\n}\nif (req.type === 'rejection' && alreadyRejected) {\n  return [{ json: { ...base, route: 'problem', status: 409, problem_title: 'Rejection already sent', problem_text: 'A rejection email was already sent to ' + to + ', so it was not sent again.' } }];\n}\nreturn [{ json: { ...base, route: req.type === 'select' ? 'ai' : 'direct' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000032",
+      "name": "Resolve Recipient"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "ai",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ai"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "direct",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "direct"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "problem",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "problem"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2420,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000033",
+      "name": "Route Request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write the email to a shortlisted candidate.\n\nCandidate name: {{ $json.vars.candidate_name }}\nRole: {{ $json.vars.role_name }}\nCompany: {{ $json.vars.company_name }}\nWhat we liked (from our resume screening, use at most one short phrase): {{ $json.strengths || $json.ai_summary || '-' }}\n\nNEXT STEP DETAILS FROM HR\nNext step: {{ $json.next_step || '-' }}\nAssignment / meeting link: {{ $json.link || '-' }}\nDeadline / date & time: {{ $json.deadline || '-' }}\nRound details: {{ $json.details || '-' }}\nNote from HR about tone/content: {{ $json.note || '-' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a recruiting coordinator writing a \"you have been selected for the next round\" email on behalf of the company's hiring team.\n\nRules:\n- Plain text only (no markdown, no asterisks, no HTML).\n- Start with \"Dear <candidate name>,\" and congratulate them on moving to the next stage of the hiring process for the role.\n- Clearly explain the next step using ONLY the details HR provided. Copy any link EXACTLY as given, on its own line. State the deadline / date & time EXACTLY as given.\n- Never invent links, dates, times, salaries, names of interviewers or other facts. If a detail is \"-\", leave it out entirely.\n- Ask the candidate to reply to confirm.\n- 90-180 words. Warm and professional.\n- End with:\nBest regards,\n<Company> Hiring Team\n- subject: short and specific, e.g. \"Next steps: <Role> at <Company>\"."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2660,
+        280
+      ],
+      "id": "f7000000-0000-4000-8000-000000000034",
+      "name": "Selection Mail Agent",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3.8-27b",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        2600,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000035",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\n      \"type\": \"string\"\n    },\n    \"body\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"subject\",\n    \"body\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        2800,
+        500
+      ],
+      "id": "f7000000-0000-4000-8000-000000000036",
+      "name": "Mail Output Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Take the AI's subject/body, or report the failure\nconst base = $('Resolve Recipient').first().json;\nconst out = $json.output || {};\nif ($json.error || !String(out.body || '').trim()) {\n  const err = typeof $json.error === 'string' ? $json.error : ($json.error?.message || 'the AI returned an empty email');\n  return [{ json: { ...base, next: 'problem', status: 502, problem_title: 'AI could not write the email', problem_text: 'Error: ' + err + '. Nothing was sent. Go back and try again.' } }];\n}\nreturn [{ json: { ...base, subject: String(out.subject || '').trim() || 'Next steps: ' + base.vars.role_name + ' at ' + base.vars.company_name, message: String(out.body).trim(), next: base.mode } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        280
+      ],
+      "id": "f7000000-0000-4000-8000-000000000037",
+      "name": "AI Draft"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "preview",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "preview"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "send",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "send"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next }}",
+                    "rightValue": "problem",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "problem"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        3220,
+        280
+      ],
+      "id": "f7000000-0000-4000-8000-000000000038",
+      "name": "Preview or Send?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Editable AI draft; \"Accept & send\" posts it as a final move_forward mail\nconst esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst m = $json;\nconst html = '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Preview selection email</title>' +\n  '<style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body><header><h1>Preview: email to ' + esc(m.vars.candidate_name) + '</h1><p>' + esc(m.vars.role_name) + ' · ' + esc(m.vars.company_name) + '</p></header>' +\n  '<div class=\"wrap\"><form class=\"card\" method=\"POST\" action=\"/webhook/send-mail\">' +\n  '<h2>AI-written email</h2><p class=\"sub\">Edit anything you like, then click Accept to send.</p>' +\n  '<input type=\"hidden\" name=\"id\" value=\"' + esc(m.application_id) + '\"><input type=\"hidden\" name=\"type\" value=\"move_forward\">' +\n  '<label>To</label><input type=\"email\" name=\"to\" required value=\"' + esc(m.to) + '\">' +\n  '<label>Subject</label><input type=\"text\" name=\"subject\" required value=\"' + esc(m.subject) + '\">' +\n  '<label>Message</label><textarea class=\"big\" name=\"message\" required>' + esc(m.message) + '</textarea>' +\n  '<button class=\"green\" type=\"submit\">Accept &amp; send</button></form>' +\n  '<p style=\"text-align:center\"><a href=\"/webhook/compose-mail?id=' + encodeURIComponent(m.application_id) + '\">Start over</a> · <a href=\"/webhook/results\">Back to results</a></p></div></body></html>';\nreturn [{ json: { html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        100
+      ],
+      "id": "f7000000-0000-4000-8000-000000000039",
+      "name": "Preview Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3660,
+        100
+      ],
+      "id": "f7000000-0000-4000-8000-000000000040",
+      "name": "Show Preview"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Final email. Rejection always uses the fixed template; selection uses the AI / HR text.\n// >>> The Gmail / SMTP address your SMTP credential logs in with <<<\nconst SENDER_EMAIL = 'your-email@gmail.com';\n\nconst REJECTION_SUBJECT = 'Update on your application for {{role_name}} at {{company_name}}';\nconst REJECTION_BODY = [\n  'Dear {{candidate_name}},',\n  '',\n  'Thank you for your interest in the {{company_name}} and for taking the time to apply for the {{role_name}} position.',\n  '',\n  'After careful consideration, we\\u2019ve decided not to move forward with your application at this stage. We appreciate your time and wish you the very best in your future opportunities.',\n  '',\n  'Best regards,',\n  '{{company_name}} Hiring Team'\n].join('\\n');\nconst fill = (tpl, v) => String(tpl)\n  .replace(/{{\\s*candidate_name\\s*}}/g, v.candidate_name)\n  .replace(/{{\\s*company_name\\s*}}/g, v.company_name)\n  .replace(/{{\\s*role_name\\s*}}/g, v.role_name);\nconst m = $json;\nconst isReject = m.type === 'rejection';\nreturn [{ json: {\n  application_id: m.application_id,\n  email_type: isReject ? 'Rejection' : 'Selection',\n  from: m.vars.company_name + ' Hiring Team <' + SENDER_EMAIL + '>',\n  to_email: m.to,\n  subject: fill(isReject ? REJECTION_SUBJECT : m.subject, m.vars),\n  text: fill(isReject ? REJECTION_BODY : String(m.message).replace(/\\r\\n/g, '\\n'), m.vars),\n  candidate_name: m.vars.candidate_name\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000041",
+      "name": "Compose Email"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $json.from }}",
+        "toEmail": "={{ $json.to_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3660,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000042",
+      "name": "Send Email",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// One row per send attempt (success or failure) for the dashboard badge\nconst mail = $('Compose Email').first().json;\nconst err = $json.error ? (typeof $json.error === 'string' ? $json.error : ($json.error.message || JSON.stringify($json.error))) : '';\nreturn [{ json: {\n  application_id: mail.application_id,\n  email_type: mail.email_type,\n  to_email: mail.to_email,\n  subject: mail.subject,\n  sent_at: $now.toISO(),\n  status: err ? 'Failed' : 'Sent',\n  error: String(err).slice(0, 500)\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3880,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000043",
+      "name": "Log Row"
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "email_log",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4100,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000044",
+      "name": "Save Email Log",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst page = (title, body, color, extraHead = '') => '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' + extraHead +\n  '<title>' + esc(title) + '</title><style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body><div class=\"msg\"><h2' + (color ? ' style=\"color:' + color + '\"' : '') + '>' + esc(title) + '</h2><p>' + body +\n  '</p><p><a href=\"/webhook/results\">Back to results</a></p></div></body></html>';\nconst log = $('Log Row').first().json;\nconst ok = log.status === 'Sent';\n// After a successful send, go back to the dashboard automatically\nconst back = ok ? '<meta http-equiv=\"refresh\" content=\"3;url=/webhook/results\">' : '';\nconst html = ok\n  ? page(log.email_type + ' mail sent', 'Sent to <b>' + esc(log.to_email) + '</b><br>Subject: ' + esc(log.subject) + '<br><br><small>Returning to the dashboard...</small>', '#16a34a', back)\n  : page('Mail could not be sent', 'Error: ' + esc(log.error) + '<br><br>Check the SMTP credential on the <b>Send Email</b> node in workflow 4.', '#dc2626');\nreturn [{ json: { ok, html } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000045",
+      "name": "Result Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.ok ? 200 : 502 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        4540,
+        600
+      ],
+      "id": "f7000000-0000-4000-8000-000000000046",
+      "name": "Show Result"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst page = (title, body, color, extraHead = '') => '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' + extraHead +\n  '<title>' + esc(title) + '</title><style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body><div class=\"msg\"><h2' + (color ? ' style=\"color:' + color + '\"' : '') + '>' + esc(title) + '</h2><p>' + body +\n  '</p><p><a href=\"/webhook/results\">Back to results</a></p></div></body></html>';\nreturn [{ json: { status: $json.status || 400, html: page($json.problem_title || 'Mail not sent', esc($json.problem_text || ''), '#dc2626') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        860
+      ],
+      "id": "f7000000-0000-4000-8000-000000000047",
+      "name": "Problem Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.status }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3660,
+        860
+      ],
+      "id": "f7000000-0000-4000-8000-000000000048",
+      "name": "Show Problem"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = v => String(v ?? '').replace(/[&<>\"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst page = (title, body, color, extraHead = '') => '<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' + extraHead +\n  '<title>' + esc(title) + '</title><style>body{font-family:system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7f9;color:#111}header{padding:20px 24px;background:#111827;color:#fff}h1{margin:0;font-size:20px}header p{margin:6px 0 0;color:#cbd5e1;font-size:14px}.wrap{max-width:760px;margin:0 auto;padding:20px 16px}.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 3px #0002}.card h2{margin:0 0 4px;font-size:18px}.sub{color:#555;font-size:13px;margin:0 0 6px}label{display:block;font-size:12px;font-weight:600;color:#444;margin:14px 0 4px;text-transform:uppercase}input,textarea,select{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #d1d5db;border-radius:8px;font:inherit;font-size:14px;background:#fff}textarea{min-height:110px;resize:vertical}textarea.big{min-height:300px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.row{grid-template-columns:1fr}}button{margin:16px 8px 0 0;padding:10px 16px;border:0;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#fff}.green{background:#16a34a}.ghost{background:#fff;color:#111827;border:1px solid #d1d5db}.note{font-size:12px;color:#6b7280;margin-top:6px}.banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:14px}.msg{max-width:540px;margin:12vh auto;background:#fff;padding:32px 36px;border-radius:12px;box-shadow:0 1px 3px #0002;text-align:center}a{color:#111827}</style></head><body><div class=\"msg\"><h2' + (color ? ' style=\"color:' + color + '\"' : '') + '>' + esc(title) + '</h2><p>' + body +\n  '</p><p><a href=\"/webhook/results\">Back to results</a></p></div></body></html>';\nconst err = $json.error || 'application not found';\nreturn [{ json: { html: page('Mail not sent', esc(err) + '<br><br><a href=\"javascript:history.back()\">Go back</a>', '#dc2626') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        860
+      ],
+      "id": "f7000000-0000-4000-8000-000000000049",
+      "name": "Invalid Request Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        860
+      ],
+      "id": "f7000000-0000-4000-8000-000000000050",
+      "name": "Show Invalid Request"
+    }
+  ],
+  "connections": {
+    "Select Page URL": {
+      "main": [
+        [
+          {
+            "node": "Check Select ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Select ID": {
+      "main": [
+        [
+          {
+            "node": "Select ID Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select ID Valid?": {
+      "main": [
+        [
+          {
+            "node": "Get Application",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Not Found Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Application": {
+      "main": [
+        [
+          {
+            "node": "Application Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Application Found?": {
+      "main": [
+        [
+          {
+            "node": "Get Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select Not Found Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job": {
+      "main": [
+        [
+          {
+            "node": "Read Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Resume": {
+      "main": [
+        [
+          {
+            "node": "Resume Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Type": {
+      "main": [
+        [
+          {
+            "node": "Resume PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resume Plain Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Select Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Build Select Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Plain Text": {
+      "main": [
+        [
+          {
+            "node": "Build Select Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Select Page": {
+      "main": [
+        [
+          {
+            "node": "Show Select Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Not Found Page": {
+      "main": [
+        [
+          {
+            "node": "Show Select Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mail URL": {
+      "main": [
+        [
+          {
+            "node": "Check Send Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Send Request": {
+      "main": [
+        [
+          {
+            "node": "Request Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Valid?": {
+      "main": [
+        [
+          {
+            "node": "Find Application",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Request Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Application": {
+      "main": [
+        [
+          {
+            "node": "Application Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Application Exists?": {
+      "main": [
+        [
+          {
+            "node": "Find Job",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid Request Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Job": {
+      "main": [
+        [
+          {
+            "node": "Get Mail History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Mail History": {
+      "main": [
+        [
+          {
+            "node": "Read Candidate Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Candidate Resume": {
+      "main": [
+        [
+          {
+            "node": "Candidate Resume Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Resume Type": {
+      "main": [
+        [
+          {
+            "node": "Candidate PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Candidate Plain Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resolve Recipient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Resolve Recipient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Candidate Plain Text": {
+      "main": [
+        [
+          {
+            "node": "Resolve Recipient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Recipient": {
+      "main": [
+        [
+          {
+            "node": "Route Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Request": {
+      "main": [
+        [
+          {
+            "node": "Selection Mail Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compose Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Problem Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selection Mail Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Draft": {
+      "main": [
+        [
+          {
+            "node": "Preview or Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview or Send?": {
+      "main": [
+        [
+          {
+            "node": "Preview Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compose Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Problem Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preview Page": {
+      "main": [
+        [
+          {
+            "node": "Show Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Row": {
+      "main": [
+        [
+          {
+            "node": "Save Email Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Email Log": {
+      "main": [
+        [
+          {
+            "node": "Result Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result Page": {
+      "main": [
+        [
+          {
+            "node": "Show Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Problem Page": {
+      "main": [
+        [
+          {
+            "node": "Show Problem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invalid Request Page": {
+      "main": [
+        [
+          {
+            "node": "Show Invalid Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Selection Mail Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mail Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Selection Mail Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "tags": []
+}
